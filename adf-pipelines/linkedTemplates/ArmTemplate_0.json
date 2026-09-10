@@ -1,0 +1,615 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "type": "string",
+            "metadata": "Data Factory name",
+            "defaultValue": "adf-sales-pipeline247"
+        },
+        "LS_SalesBlobStorage_connectionString": {
+            "type": "secureString",
+            "metadata": "Secure string for 'connectionString' of 'LS_SalesBlobStorage'"
+        },
+        "LS_SalesSQLDB_password": {
+            "type": "secureString",
+            "metadata": "Secure string for 'password' of 'LS_SalesSQLDB'"
+        },
+        "LS_SalesSQLDB_properties_typeProperties_server": {
+            "type": "string",
+            "defaultValue": "sqlsrv-sales247.database.windows.net"
+        },
+        "LS_SalesSQLDB_properties_typeProperties_database": {
+            "type": "string",
+            "defaultValue": "SalesDB"
+        },
+        "LS_SalesSQLDB_properties_typeProperties_userName": {
+            "type": "string",
+            "defaultValue": "sqladmin"
+        },
+        "TR_DailySalesLoad_properties_PL_LoadSales_parameters_folderName": {
+            "type": "string",
+            "defaultValue": "raw"
+        },
+        "TR_DailySalesLoad_properties_PL_LoadSales_parameters_fileName": {
+            "type": "string",
+            "defaultValue": "Sales_2026_09_04.csv"
+        }
+    },
+    "variables": {
+        "factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+    },
+    "resources": [
+        {
+            "name": "[concat(parameters('factoryName'), '/LS_SalesBlobStorage')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureBlobStorage",
+                "typeProperties": {
+                    "connectionString": "[parameters('LS_SalesBlobStorage_connectionString')]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/LS_SalesSQLDB')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureSqlDatabase",
+                "typeProperties": {
+                    "server": "[parameters('LS_SalesSQLDB_properties_typeProperties_server')]",
+                    "database": "[parameters('LS_SalesSQLDB_properties_typeProperties_database')]",
+                    "encrypt": "mandatory",
+                    "trustServerCertificate": false,
+                    "authenticationType": "SQL",
+                    "userName": "[parameters('LS_SalesSQLDB_properties_typeProperties_userName')]",
+                    "password": {
+                        "type": "SecureString",
+                        "value": "[parameters('LS_SalesSQLDB_password')]"
+                    }
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/DS_SalesCSV')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "LS_SalesBlobStorage",
+                    "type": "LinkedServiceReference"
+                },
+                "parameters": {
+                    "folderName": {
+                        "type": "string"
+                    },
+                    "fileName": {
+                        "type": "string"
+                    }
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobStorageLocation",
+                        "fileName": {
+                            "value": "@dataset().fileName",
+                            "type": "Expression"
+                        },
+                        "folderPath": {
+                            "value": "@dataset().folderName\n",
+                            "type": "Expression"
+                        },
+                        "container": "sales-data"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": [
+                    {
+                        "name": "OrderId",
+                        "type": "String"
+                    },
+                    {
+                        "name": "OrderDate",
+                        "type": "String"
+                    },
+                    {
+                        "name": "CustomerName",
+                        "type": "String"
+                    },
+                    {
+                        "name": "Product",
+                        "type": "String"
+                    },
+                    {
+                        "name": "Category",
+                        "type": "String"
+                    },
+                    {
+                        "name": "Quantity",
+                        "type": "String"
+                    },
+                    {
+                        "name": "UnitPrice",
+                        "type": "String"
+                    },
+                    {
+                        "name": "Region",
+                        "type": "String"
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/LS_SalesBlobStorage')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/DS_SalesSQLDB')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "LS_SalesSQLDB",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "AzureSqlTable",
+                "schema": [
+                    {
+                        "name": "OrderId",
+                        "type": "int",
+                        "precision": 10
+                    },
+                    {
+                        "name": "OrderDate",
+                        "type": "date"
+                    },
+                    {
+                        "name": "CustomerName",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "Product",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "Category",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "Quantity",
+                        "type": "int",
+                        "precision": 10
+                    },
+                    {
+                        "name": "UnitPrice",
+                        "type": "decimal",
+                        "precision": 18,
+                        "scale": 2
+                    },
+                    {
+                        "name": "Region",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "TotalAmount",
+                        "type": "decimal",
+                        "precision": 18,
+                        "scale": 2
+                    }
+                ],
+                "typeProperties": {
+                    "schema": "dbo",
+                    "table": "Sales"
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/LS_SalesSQLDB')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/DS_RejectedCSV')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "LS_SalesBlobStorage",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobStorageLocation",
+                        "folderPath": "rejected",
+                        "container": "sales-data"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/LS_SalesBlobStorage')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/DS_PipelineConfig')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "LS_SalesSQLDB",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "AzureSqlTable",
+                "schema": [
+                    {
+                        "name": "FileName",
+                        "type": "varchar"
+                    },
+                    {
+                        "name": "IsActive",
+                        "type": "bit"
+                    }
+                ],
+                "typeProperties": {
+                    "schema": "dbo",
+                    "table": "PipelineConfig"
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/LS_SalesSQLDB')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/DF_TransformSales')]",
+            "type": "Microsoft.DataFactory/factories/dataflows",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "type": "MappingDataFlow",
+                "typeProperties": {
+                    "sources": [
+                        {
+                            "dataset": {
+                                "referenceName": "DS_SalesCSV",
+                                "type": "DatasetReference"
+                            },
+                            "name": "SalesSource"
+                        }
+                    ],
+                    "sinks": [
+                        {
+                            "dataset": {
+                                "referenceName": "DS_SalesSQLDB",
+                                "type": "DatasetReference"
+                            },
+                            "name": "SinkValidToSQL",
+                            "rejectedDataLinkedService": {
+                                "referenceName": "LS_SalesBlobStorage",
+                                "type": "LinkedServiceReference"
+                            }
+                        },
+                        {
+                            "dataset": {
+                                "referenceName": "DS_RejectedCSV",
+                                "type": "DatasetReference"
+                            },
+                            "name": "SinkRejectedToBlob"
+                        }
+                    ],
+                    "transformations": [
+                        {
+                            "name": "AddTotalAmount"
+                        },
+                        {
+                            "name": "ValidationSplit2"
+                        }
+                    ],
+                    "scriptLines": [
+                        "parameters{",
+                        "     folderName as string,",
+                        "     fileName as string",
+                        "}",
+                        "source(output(",
+                        "          OrderId as short,",
+                        "          OrderDate as date,",
+                        "          CustomerName as string,",
+                        "          Product as string,",
+                        "          Category as string,",
+                        "          Quantity as short,",
+                        "          UnitPrice as integer,",
+                        "          Region as string",
+                        "     ),",
+                        "     allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     ignoreNoFilesFound: false) ~> SalesSource",
+                        "SalesSource derive(TotalAmount = Quantity * UnitPrice) ~> AddTotalAmount",
+                        "AddTotalAmount split(Quantity > 0,",
+                        "     Quantity <= 0,",
+                        "     disjoint: false) ~> ValidationSplit2@(ValidRows, ValidRows1)",
+                        "ValidationSplit2@ValidRows sink(allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     input(",
+                        "          OrderId as integer,",
+                        "          OrderDate as date,",
+                        "          CustomerName as string,",
+                        "          Product as string,",
+                        "          Category as string,",
+                        "          Quantity as integer,",
+                        "          UnitPrice as decimal(18,2),",
+                        "          Region as string,",
+                        "          TotalAmount as decimal(18,2)",
+                        "     ),",
+                        "     deletable:false,",
+                        "     insertable:true,",
+                        "     updateable:false,",
+                        "     upsertable:false,",
+                        "     format: 'table',",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true,",
+                        "     errorHandlingOption: 'stopOnFirstError') ~> SinkValidToSQL",
+                        "ValidationSplit2@ValidRows1 sink(allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> SinkRejectedToBlob"
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/DS_SalesCSV')]",
+                "[concat(variables('factoryId'), '/datasets/DS_SalesSQLDB')]",
+                "[concat(variables('factoryId'), '/linkedServices/LS_SalesBlobStorage')]",
+                "[concat(variables('factoryId'), '/datasets/DS_RejectedCSV')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/PL_LoadSales')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "LK_GetActiveFiles",
+                        "type": "Lookup",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "0.12:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "source": {
+                                "type": "AzureSqlSource",
+                                "sqlReaderQuery": "SELECT FileName FROM PipelineConfig WHERE IsActive = 1 AND IsProcessed = 0",
+                                "queryTimeout": "02:00:00",
+                                "partitionOption": "None"
+                            },
+                            "dataset": {
+                                "referenceName": "DS_PipelineConfig",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            },
+                            "firstRowOnly": false
+                        }
+                    },
+                    {
+                        "name": "FE_ProcessFiles",
+                        "type": "ForEach",
+                        "dependsOn": [
+                            {
+                                "activity": "LK_GetActiveFiles",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "userProperties": [],
+                        "typeProperties": {
+                            "items": {
+                                "value": "@activity('LK_GetActiveFiles').output.value",
+                                "type": "Expression"
+                            },
+                            "isSequential": true,
+                            "activities": [
+                                {
+                                    "name": "Data Flow 1",
+                                    "type": "ExecuteDataFlow",
+                                    "dependsOn": [],
+                                    "policy": {
+                                        "timeout": "0.12:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "typeProperties": {
+                                        "dataflow": {
+                                            "referenceName": "DF_TransformSales",
+                                            "type": "DataFlowReference",
+                                            "parameters": {
+                                                "folderName": {
+                                                    "value": "'@{pipeline().parameters.folderName}'",
+                                                    "type": "Expression"
+                                                },
+                                                "fileName": {
+                                                    "value": "'@{item().FileName}'",
+                                                    "type": "Expression"
+                                                }
+                                            },
+                                            "datasetParameters": {
+                                                "SalesSource": {
+                                                    "folderName": {
+                                                        "value": "@pipeline().parameters.folderName",
+                                                        "type": "Expression"
+                                                    },
+                                                    "fileName": {
+                                                        "value": "@item().FileName",
+                                                        "type": "Expression"
+                                                    }
+                                                },
+                                                "SinkValidToSQL": {},
+                                                "SinkRejectedToBlob": {}
+                                            }
+                                        },
+                                        "staging": {},
+                                        "compute": {
+                                            "coreCount": 8,
+                                            "computeType": "General"
+                                        },
+                                        "traceLevel": "Fine"
+                                    }
+                                },
+                                {
+                                    "name": "SP_MarkFileProcessed",
+                                    "type": "Script",
+                                    "dependsOn": [
+                                        {
+                                            "activity": "Data Flow 1",
+                                            "dependencyConditions": [
+                                                "Succeeded"
+                                            ]
+                                        }
+                                    ],
+                                    "policy": {
+                                        "timeout": "0.12:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "linkedServiceName": {
+                                        "referenceName": "LS_SalesSQLDB",
+                                        "type": "LinkedServiceReference"
+                                    },
+                                    "typeProperties": {
+                                        "scripts": [
+                                            {
+                                                "type": "Query",
+                                                "text": {
+                                                    "value": "UPDATE PipelineConfig SET IsProcessed = 1 WHERE FileName = '@{item().FileName}'",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        ],
+                                        "scriptBlockExecutionTimeout": "02:00:00"
+                                    }
+                                },
+                                {
+                                    "name": "SP_LogError",
+                                    "type": "Script",
+                                    "dependsOn": [
+                                        {
+                                            "activity": "Data Flow 1",
+                                            "dependencyConditions": [
+                                                "Failed"
+                                            ]
+                                        }
+                                    ],
+                                    "policy": {
+                                        "timeout": "0.12:00:00",
+                                        "retry": 0,
+                                        "retryIntervalInSeconds": 30,
+                                        "secureOutput": false,
+                                        "secureInput": false
+                                    },
+                                    "userProperties": [],
+                                    "linkedServiceName": {
+                                        "referenceName": "LS_SalesSQLDB",
+                                        "type": "LinkedServiceReference"
+                                    },
+                                    "typeProperties": {
+                                        "scripts": [
+                                            {
+                                                "type": "Query",
+                                                "text": "     INSERT INTO PipelineErrorLog (PipelineName, ActivityName, ErrorMessage, FileName)\n     VALUES ('PL_LoadSales', 'Data flow1', '@{activity('Data flow1').Error.message}', '@{item().FileName}')"
+                                            }
+                                        ],
+                                        "scriptBlockExecutionTimeout": "02:00:00"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "parameters": {
+                    "folderName": {
+                        "type": "string",
+                        "defaultValue": "raw"
+                    },
+                    "fileName": {
+                        "type": "string",
+                        "defaultValue": "Sales_2026_09_04.csv"
+                    }
+                },
+                "annotations": [],
+                "lastPublishTime": "2026-09-08T07:31:02Z"
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/DS_PipelineConfig')]",
+                "[concat(variables('factoryId'), '/dataflows/DF_TransformSales')]",
+                "[concat(variables('factoryId'), '/linkedServices/LS_SalesSQLDB')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/TR_DailySalesLoad')]",
+            "type": "Microsoft.DataFactory/factories/triggers",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "runtimeState": "Started",
+                "pipelines": [
+                    {
+                        "pipelineReference": {
+                            "referenceName": "PL_LoadSales",
+                            "type": "PipelineReference"
+                        },
+                        "parameters": {
+                            "folderName": "[parameters('TR_DailySalesLoad_properties_PL_LoadSales_parameters_folderName')]",
+                            "fileName": "[parameters('TR_DailySalesLoad_properties_PL_LoadSales_parameters_fileName')]"
+                        }
+                    }
+                ],
+                "type": "ScheduleTrigger",
+                "typeProperties": {
+                    "recurrence": {
+                        "frequency": "Day",
+                        "interval": 1,
+                        "startTime": "2026-09-08T05:24:00",
+                        "timeZone": "India Standard Time",
+                        "schedule": {
+                            "minutes": [
+                                0
+                            ],
+                            "hours": [
+                                22
+                            ]
+                        }
+                    }
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/pipelines/PL_LoadSales')]"
+            ]
+        }
+    ]
+}
