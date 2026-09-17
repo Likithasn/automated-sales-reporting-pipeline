@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5080/api';
+const API_BASE_URL = 'sales-api-qwnl.onrender.com';
 
 async function getJson(path) {
   const response = await fetch(`${API_BASE_URL}${path}`);
