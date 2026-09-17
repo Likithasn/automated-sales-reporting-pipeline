@@ -1,3 +1,4 @@
+ // force redeploy
 const API_BASE_URL = 'https://sales-api-qwnl.onrender.com/api';
 
 async function getJson(path) {
