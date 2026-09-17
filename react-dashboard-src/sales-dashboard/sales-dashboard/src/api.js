@@ -1,4 +1,4 @@
-const API_BASE_URL = 'sales-api-qwnl.onrender.com';
+const API_BASE_URL = 'https://sales-api-qwnl.onrender.com/api';
 
 async function getJson(path) {
   const response = await fetch(`${API_BASE_URL}${path}`);
