@@ -17,6 +17,17 @@ Full breakdown: see [`docs/architecture.md`](docs/architecture.md)
 
 ---
 
+## Live Demo
+
+| What | Link |
+|---|---|
+| **Dashboard** | https://sales-reporting-dashboard.vercel.app |
+| **API (Swagger docs)** | https://sales-api-qwnl.onrender.com/swagger |
+
+> Note: the API is hosted on Render's free tier, which spins down after inactivity — the first request after idle time can take up to ~50 seconds to respond while it wakes up.
+
+---
+
 ## Tech Stack
 
 | Layer            | Technology                                   |
@@ -26,6 +37,7 @@ Full breakdown: see [`docs/architecture.md`](docs/architecture.md)
 | Database          | Azure SQL Database                            |
 | Backend API       | ASP.NET Core Web API + Dapper                 |
 | Frontend          | React (Vite)                                  |
+| Hosting           | Render (API) · Vercel (Frontend)              |
 
 ---
 
@@ -37,6 +49,7 @@ Full breakdown: see [`docs/architecture.md`](docs/architecture.md)
 - **Metadata-driven** processing using Lookup + ForEach over a control table
 - Production concerns: scheduled triggers, incremental load (no duplicate processing)
 - Exposing pipeline output through a REST API and a live dashboard
+- Deploying and connecting a multi-service stack across separate cloud providers (Azure, Render, Vercel), including firewall, CORS, and caching troubleshooting
 
 ---
 
@@ -51,7 +64,7 @@ The pipeline was built incrementally across 8 phases. Full step-by-step detail i
 5. Parameterization (folder/file names, reusable pipeline)
 6. Scheduled Trigger (daily run, 10 PM IST)
 7. Lookup + ForEach (metadata-driven multi-file processing)
-8. Incremental load + error handling + .NET API + React dashboard
+8. Incremental load + .NET API + React dashboard
 
 ---
 
@@ -89,6 +102,14 @@ The pipeline was built incrementally across 8 phases. Full step-by-step detail i
 - Regional breakdown bar chart
 - Pipeline file processing status
 - Orders table
+
+---
+
+## Known Limitations
+
+- **Error handling is not yet implemented.** A `PipelineErrorLog` table and a corresponding `/api/pipeline/errors` endpoint exist, but the ADF failure-path activity that would populate the table isn't wired up reliably yet.
+- **Incremental load uses a simple boolean flag** (`IsProcessed`) rather than a timestamp-based watermark — fine for this project's scale, but a production system would typically track `LastModifiedDate` instead.
+- **SQL Server firewall is broadly opened** (`0.0.0.0`–`255.255.255.255`) to allow Render's dynamic IPs to connect — acceptable for a free-tier learning project, not something to carry into production.
 
 ---
 
